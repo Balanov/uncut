@@ -1,0 +1,10 @@
+pageType: content
+background: {type: solid, color: "$paper"}
+elements:
+  - elementId: uncut-mark
+    elementType: shape
+    bounds: [256, 256, 512, 512]
+    shapeName: custom
+    viewBox: [512, 512]
+    path: "M64,48 H160 V320 C160,368 192,400 240,400 H272 C320,400 352,368 352,320 V48 H448 V320 C448,432 384,496 272,496 H240 C128,496 64,432 64,320 Z"
+    fill: {type: solid, color: "$ink"}

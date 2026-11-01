@@ -1,0 +1,17 @@
+version: v2
+title: UNCUT identity
+size: [1024, 1024]
+theme:
+  colors:
+    ink: "#111111"
+    paper: "#FFFFFF"
+  textStyles:
+    wordmark:
+      fontFamily: Arial
+      fontSize: 112
+      bold: true
+      color: "$ink"
+      letterSpacing: 8
+pages:
+  - pages/1_mark.page
+  - pages/2_lockup.page

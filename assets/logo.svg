@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">UNCUT</title>
+  <path fill="#111111" d="M64 48h96v272c0 48 32 80 80 80h32c48 0 80-32 80-80V48h96v272c0 112-64 176-176 176h-32C128 496 64 432 64 320V48Z"/>
+</svg>
