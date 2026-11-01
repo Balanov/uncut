@@ -1,17 +1,19 @@
 <div align="center">
   <img src="assets/logo.svg" alt="UNCUT logo" width="112">
   <h1>UNCUT</h1>
-  <p><strong>The lossless, headless coding agent.</strong></p>
-  <p>One static binary. Four tools. Plain stdin/stdout. No silent cuts.</p>
+  <p><strong>A 7 MB lossless coding-agent harness for shell, CI, and local models.</strong></p>
+  <p>No TUI. No telemetry. No silent context cuts.</p>
+  <p>Linux · macOS · Windows · amd64 + arm64 · MIT</p>
 </div>
 
 [![CI](https://github.com/Balanov/uncut/actions/workflows/ci.yml/badge.svg)](https://github.com/Balanov/uncut/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Balanov/uncut)](https://github.com/Balanov/uncut/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white)](go.mod)
 
 UNCUT is a tiny coding-agent harness for shell pipelines, CI jobs, containers, and agent experiments. It deliberately has no TUI, telemetry, plugin system, background agents, automatic retries, or context compaction.
 
-The entire conversation is sent on every model call. File contents and combined command output are never truncated by UNCUT. If the provider cuts a response at its output limit, UNCUT exits with an error instead of presenting a partial answer as success.
+The entire conversation is sent on every model call. File contents and combined command output are never truncated by UNCUT. If the provider cuts a response at its output limit, UNCUT exits with an error instead of presenting a partial answer as success. [Run the proof yourself](bench/README.md) or inspect the [recorded measurements](BENCHMARKS.md).
 
 ## Why UNCUT?
 
@@ -20,17 +22,78 @@ The entire conversation is sent on every model call. File contents and combined 
 - **Small and portable.** One statically linked Go binary, no runtime or third-party Go dependencies.
 - **Provider neutral.** Works with OpenAI-compatible Chat Completions endpoints, including local servers.
 - **Resumable.** Optional append-only JSONL sessions preserve every message and tool result.
-- **Forkable.** Four tools, one provider protocol, one agent loop, MIT license.
+- **Forkable.** 837 lines of implementation Go, four tools, one provider protocol, one agent loop, MIT license.
 
 ## Install
 
-Download a binary from [Releases](https://github.com/Balanov/uncut/releases), or install with Go 1.26+:
+### Linux
+
+```sh
+VERSION=0.1.1
+ARCH=amd64  # Use arm64 on ARM64.
+curl -fSLo uncut "https://github.com/Balanov/uncut/releases/download/v${VERSION}/uncut-linux-${ARCH}"
+mkdir -p "$HOME/.local/bin"
+install -m 0755 uncut "$HOME/.local/bin/uncut"
+export PATH="$HOME/.local/bin:$PATH"
+uncut --version
+```
+
+Make sure `$HOME/.local/bin` is on your `PATH`.
+
+### macOS
+
+```sh
+VERSION=0.1.1
+ARCH=arm64  # Use amd64 on Intel.
+curl -fSLo uncut "https://github.com/Balanov/uncut/releases/download/v${VERSION}/uncut-darwin-${ARCH}"
+mkdir -p "$HOME/.local/bin"
+install -m 0755 uncut "$HOME/.local/bin/uncut"
+export PATH="$HOME/.local/bin:$PATH"
+uncut --version
+```
+
+### Windows PowerShell
+
+```powershell
+$Version = "0.1.1"
+$Arch = "amd64"  # Use arm64 on ARM64.
+$Dest = "$env:LOCALAPPDATA\Programs\UNCUT"
+New-Item -ItemType Directory -Force $Dest | Out-Null
+Invoke-WebRequest -Uri "https://github.com/Balanov/uncut/releases/download/v$Version/uncut-windows-$Arch.exe" -OutFile "$Dest\uncut.exe"
+$env:Path = "$Dest;$env:Path"
+uncut --version
+```
+
+Add `$Dest` to your user `PATH` to make UNCUT available in future terminals.
+
+### Checksums and OS warnings
+
+Every release includes `checksums.txt`. For example, verify a Linux download with:
+
+```sh
+VERSION=0.1.1
+ARCH=amd64
+curl -fSLO "https://github.com/Balanov/uncut/releases/download/v${VERSION}/checksums.txt"
+grep "uncut-linux-${ARCH}$" checksums.txt | sha256sum -c -
+```
+
+The binaries are not code-signed yet, so SmartScreen or Gatekeeper may warn. Verify the SHA-256 checksum before allowing a downloaded executable. On macOS, after verification, remove quarantine from this file only:
+
+```sh
+xattr -d com.apple.quarantine "$HOME/.local/bin/uncut"
+```
+
+You can also build from source instead.
+
+### Go install and source builds
+
+With Go 1.26+:
 
 ```sh
 go install github.com/Balanov/uncut/cmd/uncut@latest
 ```
 
-Build from source:
+Or build a checkout:
 
 ```sh
 git clone https://github.com/Balanov/uncut.git
@@ -56,15 +119,16 @@ For an OpenAI-compatible provider, also set its base URL:
 export UNCUT_BASE_URL="https://openrouter.ai/api/v1"
 ```
 
-For a local Ollama server with an installed tool-capable model:
+For a local Ollama server with an installed tool-capable model (this exact setup was smoke-tested with `qwen3:8b`):
 
 ```sh
+ollama pull qwen3:8b
 export UNCUT_BASE_URL="http://localhost:11434/v1"
-export UNCUT_MODEL="qwen3-coder"
+export UNCUT_MODEL="qwen3:8b"
 uncut "Explain this repository"
 ```
 
-No API key is required by default for local endpoints. Replace the example model with one actually installed on your machine.
+No API key is required by default for local endpoints. In PowerShell, set variables with `$env:UNCUT_BASE_URL = "..."` and `$env:UNCUT_MODEL = "..."`. Replace the example model with one actually installed on your machine; tool-call behavior depends on the model.
 
 ### Unix pipelines
 
@@ -126,7 +190,9 @@ Useful flags:
 | `replace` | Replaces exactly one occurrence; zero or multiple matches fail |
 | `run_command` | Returns the exit code and complete combined stdout/stderr |
 
-File paths must stay inside the workspace. `run_command` uses `/bin/sh -c` on Unix and `cmd.exe /C` on Windows.
+File paths must stay inside the workspace. `run_command` uses `/bin/sh -c` on Unix and `cmd.exe /D /S /C` on Windows.
+
+Some Windows utilities can emit UTF-16 or code-page output rather than UTF-8. UNCUT rejects that output instead of guessing a conversion; configure commands to emit UTF-8 when possible.
 
 ## Exit codes
 
@@ -142,7 +208,7 @@ File paths must stay inside the workspace. `run_command` uses `/bin/sh -c` on Un
 
 UNCUT does not truncate, summarize, or rewrite valid UTF-8 prompts, stored messages, file contents, or command output. It does not extend a model's context window, and it cannot control provider-side processing. When the context or output limit is exceeded, the provider may reject or cut the response; UNCUT surfaces that failure instead of hiding it.
 
-Binary files and invalid UTF-8 are rejected explicitly. The initial release uses non-streaming Chat Completions and supports text plus tool calls, not images.
+Binary files and invalid UTF-8 are rejected explicitly. UNCUT uses non-streaming Chat Completions and supports text plus tool calls, not images.
 
 ## Safety
 
@@ -150,19 +216,33 @@ Binary files and invalid UTF-8 are rejected explicitly. The initial release uses
 
 There are no approval popups, automatic commits, automatic retries, or hidden recovery loops.
 
+## Verify the lossless contract
+
+The proof script drives the real binary against a deterministic local provider. It needs Python 3, but no API key, model, or third-party package:
+
+```sh
+go build -o bin/uncut ./cmd/uncut
+python bench/proof.py ./bin/uncut
+```
+
+It checks complete large-file and command-output transport, exact session resume, edits, explicit truncation failures, step limits, and invalid UTF-8 handling. See the [recorded results](BENCHMARKS.md) and [reproduction commands](bench/README.md). These are transport tests, not model-quality benchmarks.
+
 ## Develop
 
 ```sh
-go test ./...
+gofmt -w cmd internal
+go test -count=1 ./...
 go vet ./...
 ```
 
-The test suite includes complete large-file and large-command-output round trips, session resume, provider truncation, JSON output, and platform-specific shell behavior.
+The test suite includes complete large-file and large-command-output round trips, session resume, provider truncation, JSON output, and platform-specific shell behavior. See [CONTRIBUTING.md](CONTRIBUTING.md) for the project contract and PR checklist.
 
 ```text
 cmd/uncut/          CLI and process exit codes
-internal/harness/   agent loop, provider, tools, sessions
+internal/harness/   agent loop, provider, tools, sessions, platform shells
+bench/              lossless proof and benchmark drivers
 assets/             logo and editable brand source
+docs/               launch material
 ```
 
 ## License

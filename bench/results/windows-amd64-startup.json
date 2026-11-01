@@ -1,0 +1,40 @@
+{
+  "suite": "uncut-startup-v1",
+  "measured_at_utc": "2026-11-01T18:00:22.224518+00:00",
+  "method": "wall time of --version subprocess; warm OS caches; interleaved candidates",
+  "platform": "Windows-11-10.0.28020-SP0",
+  "machine": "AMD64",
+  "processor": "AMD64 Family 25 Model 33 Stepping 0, AuthenticAMD",
+  "logical_cpus": 32,
+  "python": "3.12.16",
+  "results": [
+    {
+      "name": "uncut",
+      "executable": "F:\\Харнес\\bin\\uncut.exe",
+      "version": "uncut 0.1.1",
+      "executable_bytes": 7109120,
+      "footprint_bytes": 7109120,
+      "footprint_path": "F:\\Харнес\\bin\\uncut.exe",
+      "runs": 100,
+      "warmups": 5,
+      "min_ms": 8.791,
+      "median_ms": 9.461,
+      "p95_ms": 10.697,
+      "max_ms": 11.972
+    },
+    {
+      "name": "pi",
+      "executable": "F:\\Харнес\\.tooling\\pi\\node_modules\\.bin\\pi.cmd",
+      "version": "1.4.0",
+      "executable_bytes": 355,
+      "footprint_bytes": 112329741,
+      "footprint_path": "F:\\Харнес\\.tooling\\pi\\node_modules",
+      "runs": 100,
+      "warmups": 5,
+      "min_ms": 238.001,
+      "median_ms": 243.339,
+      "p95_ms": 254.129,
+      "max_ms": 264.963
+    }
+  ]
+}

@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"unicode/utf8"
 )
@@ -138,12 +137,7 @@ func (e *Executor) runCommand(ctx context.Context, command string) (string, erro
 	if command == "" {
 		return "", errors.New("command is required")
 	}
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.CommandContext(ctx, "cmd.exe", "/C", command)
-	} else {
-		cmd = exec.CommandContext(ctx, "/bin/sh", "-c", command)
-	}
+	cmd := newShellCommand(ctx, command)
 	cmd.Dir = e.root
 	output, err := cmd.CombinedOutput()
 	if ctx.Err() != nil {

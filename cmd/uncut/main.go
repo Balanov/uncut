@@ -19,7 +19,7 @@ import (
 	"github.com/Balanov/uncut/internal/harness"
 )
 
-const version = "0.1.0"
+const version = "0.1.1"
 const defaultSystemPrompt = "You are a coding agent working in a local workspace. Use the available tools to complete the user's request. Inspect before editing. Run relevant checks. Do not claim success without evidence. File tools are scoped to the workspace; shell commands run from its root."
 
 func main() {
@@ -44,7 +44,7 @@ func run(args []string, stdin *os.File, stdout, stderr io.Writer) int {
 	noAgents := flags.Bool("no-agents", false, "do not read AGENTS.md")
 	showVersion := flags.Bool("version", false, "print version and exit")
 	flags.Usage = func() {
-		fmt.Fprintln(stderr, "UNCUT — the lossless, headless coding agent")
+		fmt.Fprintln(stderr, "UNCUT — the lossless, headless coding-agent harness")
 		fmt.Fprintln(stderr, "\nUsage:")
 		fmt.Fprintln(stderr, "  uncut [flags] <prompt>")
 		fmt.Fprintln(stderr, "  git diff | uncut [flags] \"review this\"")

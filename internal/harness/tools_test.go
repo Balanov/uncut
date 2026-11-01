@@ -96,6 +96,32 @@ func TestFileToolsRejectWorkspaceEscape(t *testing.T) {
 	}
 }
 
+func TestRunCommandSupportsQuotedExecutable(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows cmd.exe quoting")
+	}
+	root := t.TempDir()
+	directory := filepath.Join(root, "directory with spaces")
+	if err := os.Mkdir(directory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	script := filepath.Join(directory, "check.cmd")
+	if err := os.WriteFile(script, []byte("@echo off\r\n@echo script-ok %1\r\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	executor, err := NewExecutor(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := executor.runCommand(context.Background(), `"`+script+`" "hello world"`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "exit_code=0\nscript-ok \"hello world\"\r\n" {
+		t.Fatalf("unexpected quoted command result: %q", got)
+	}
+}
+
 func TestReadFileRejectsInvalidUTF8(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "binary.dat"), []byte{0xff, 0xfe, 0x00}, 0o644); err != nil {

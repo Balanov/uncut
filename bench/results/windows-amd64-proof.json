@@ -1,0 +1,33 @@
+{
+  "suite": "uncut-lossless-proof-v1",
+  "python": "3.12.16",
+  "scenarios": {
+    "large_utf8_file_prompt_and_resume": {
+      "status": "passed",
+      "payload_utf8_bytes": 442400,
+      "model_calls": 3
+    },
+    "large_combined_stdout_stderr": {
+      "status": "passed",
+      "combined_output_bytes": 213018
+    },
+    "exact_edit_and_real_check": {
+      "status": "passed",
+      "verified_file_bytes": 13
+    },
+    "provider_truncation_rejected": {
+      "status": "passed",
+      "exit_code": 3,
+      "partial_stdout_bytes": 0
+    },
+    "step_limit_is_explicit": {
+      "status": "passed",
+      "exit_code": 4,
+      "model_calls": 2
+    },
+    "invalid_utf8_is_not_replaced": {
+      "status": "passed",
+      "invalid_bytes_replaced": 0
+    }
+  }
+}

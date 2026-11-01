@@ -3,4 +3,5 @@ bin/
 dist/
 *.test
 *.out
+__pycache__/
 .DS_Store

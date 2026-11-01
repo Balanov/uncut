@@ -16,8 +16,15 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
       - run: go test -count=1 ./...
       - run: go vet ./...
+      - name: Verify the lossless CLI contract
+        run: |
+          go build -o uncut-proof.exe ./cmd/uncut
+          python bench/proof.py ./uncut-proof.exe
       - name: Build release binaries
         run: |
           set -euo pipefail
