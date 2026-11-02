@@ -4,7 +4,7 @@
   <p><strong>The lossless, headless coding agent harness.</strong></p>
   <p>One 7 MB static binary, four tools, plain stdin/stdout.<br>No TUI. No telemetry. No silent context cuts.</p>
   <p>Linux · macOS · Windows · amd64 + arm64 · MIT</p>
-  <p><a href="https://uncut.kimi.page">Landing page: uncut.kimi.page</a></p>
+  <p><a href="https://balanov.pro/uncut/">Landing page: balanov.pro/uncut</a></p>
 </div>
 
 [![CI](https://github.com/Balanov/uncut/actions/workflows/ci.yml/badge.svg)](https://github.com/Balanov/uncut/actions/workflows/ci.yml)
