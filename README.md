@@ -1,8 +1,8 @@
 <div align="center">
   <img src="assets/logo.svg" alt="UNCUT logo" width="112">
   <h1>UNCUT</h1>
-  <p><strong>A 7 MB lossless coding-agent harness for shell, CI, and local models.</strong></p>
-  <p>No TUI. No telemetry. No silent context cuts.</p>
+  <p><strong>The lossless, headless coding agent harness.</strong></p>
+  <p>One 7 MB static binary, four tools, plain stdin/stdout.<br>No TUI. No telemetry. No silent context cuts.</p>
   <p>Linux · macOS · Windows · amd64 + arm64 · MIT</p>
 </div>
 
