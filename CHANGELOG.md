@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- A rejected model step is no longer written to `--session`. Provider truncation, a tool call without an id or name, and an empty message previously left an unanswered `tool_call` or an empty assistant message in the stored history, so the next run on the same session sent a request that OpenAI-compatible providers reject — the session could not be resumed at all.
+
 ## 0.1.1 — 2026-11-01
 
 ### Fixed

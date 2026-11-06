@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -145,5 +147,155 @@ func TestRunnerMaxSteps(t *testing.T) {
 	runner := &Runner{Provider: provider, Model: "test", MaxSteps: 1, System: "system", Executor: executor}
 	if _, err := runner.Run(context.Background(), "prompt"); !errors.Is(err, ErrMaxSteps) {
 		t.Fatalf("got error %v, want ErrMaxSteps", err)
+	}
+}
+
+// chatHistoryProblems lists violations of the Chat Completions message graph that
+// make a provider reject an entire request: an assistant tool call must be
+// answered by tool results before any other message follows, and an assistant
+// message must carry either content or tool calls.
+func chatHistoryProblems(messages []Message) []string {
+	var problems []string
+	var unanswered []string
+	for i, message := range messages {
+		if message.Role == "tool" {
+			answered := false
+			for j, id := range unanswered {
+				if id == message.ToolCallID {
+					unanswered = append(unanswered[:j], unanswered[j+1:]...)
+					answered = true
+					break
+				}
+			}
+			if !answered {
+				problems = append(problems, fmt.Sprintf("message %d is a tool result for tool call %q, which is not pending", i, message.ToolCallID))
+			}
+			continue
+		}
+		if len(unanswered) > 0 {
+			problems = append(problems, fmt.Sprintf("message %d arrived while tool calls %v were unanswered", i, unanswered))
+			unanswered = nil
+		}
+		if message.Role == "assistant" && len(message.ToolCalls) == 0 && message.Content == "" {
+			problems = append(problems, fmt.Sprintf("message %d is an assistant message without content or tool calls", i))
+		}
+		for _, call := range message.ToolCalls {
+			unanswered = append(unanswered, call.ID)
+		}
+	}
+	if len(unanswered) > 0 {
+		problems = append(problems, fmt.Sprintf("history ends with unanswered tool calls %v", unanswered))
+	}
+	return problems
+}
+
+// A rejected step must never reach the session: otherwise the next --session run
+// sends a history the provider refuses, and the session cannot be resumed at all.
+func TestRunnerRejectedStepsStayOutOfSession(t *testing.T) {
+	truncatedToolCall := toolResponse("call-1", "read_file", map[string]string{"path": "note.txt"})
+	truncatedToolCall.Choices[0].FinishReason = "length"
+	truncatedText := assistantResponse("partial")
+	truncatedText.Choices[0].FinishReason = "max_tokens"
+	contentFiltered := assistantResponse("filtered")
+	contentFiltered.Choices[0].FinishReason = "content_filter"
+	unexpectedFinish := assistantResponse("why")
+	unexpectedFinish.Choices[0].FinishReason = "end_turn"
+	emptyFinal := assistantResponse("")
+	missingID := toolResponse("", "read_file", map[string]string{"path": "note.txt"})
+	missingName := toolResponse("call-1", "", map[string]string{"path": "note.txt"})
+
+	for _, tc := range []struct {
+		name      string
+		response  CompletionResponse
+		want      string
+		truncated bool
+	}{
+		{"truncated tool call", truncatedToolCall, "truncated the response", true},
+		{"truncated text", truncatedText, "truncated the response", true},
+		{"content filter", contentFiltered, "content_filter", false},
+		{"unexpected finish reason", unexpectedFinish, "stopped unexpectedly", false},
+		{"empty final message", emptyFinal, "empty final message", false},
+		{"tool call without id", missingID, "without an id or function name", false},
+		{"tool call without name", missingName, "without an id or function name", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			if err := os.WriteFile(filepath.Join(root, "note.txt"), []byte("note\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			executor, err := NewExecutor(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(root, "session.jsonl")
+			session, err := OpenSession(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer session.Close()
+			provider := &scriptedProvider{responses: []CompletionResponse{tc.response}}
+			runner := &Runner{Provider: provider, Model: "test", MaxSteps: 4, System: "system", Executor: executor, Session: session}
+			_, err = runner.Run(context.Background(), "prompt")
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("got error %v, want %q", err, tc.want)
+			}
+			if tc.truncated && !errors.Is(err, ErrProviderTruncated) {
+				t.Fatalf("got error %v, want ErrProviderTruncated", err)
+			}
+			if len(provider.requests) != 1 {
+				t.Fatalf("got %d requests, want exactly one (no retry)", len(provider.requests))
+			}
+			// The prompt is kept, the rejected step is not.
+			stored := session.Messages()
+			if len(stored) != 2 || stored[0].Role != "system" || stored[1].Role != "user" {
+				t.Fatalf("session kept the rejected step: %+v", stored)
+			}
+			reopened, err := OpenSession(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reopened.Close()
+			if problems := chatHistoryProblems(reopened.Messages()); len(problems) != 0 {
+				t.Fatalf("stored session is unusable: %v", problems)
+			}
+		})
+	}
+}
+
+func TestRunnerResumeAfterRejectedStepKeepsHistoryValid(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "note.txt"), []byte("note\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	executor, err := NewExecutor(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := OpenSession(filepath.Join(root, "session.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer session.Close()
+
+	rejected := toolResponse("call-1", "read_file", map[string]string{"path": "note.txt"})
+	rejected.Choices[0].FinishReason = "length"
+	first := &Runner{Provider: &scriptedProvider{responses: []CompletionResponse{rejected}},
+		Model: "test", MaxSteps: 2, System: "system", Executor: executor, Session: session}
+	if _, err := first.Run(context.Background(), "first prompt"); !errors.Is(err, ErrProviderTruncated) {
+		t.Fatalf("got error %v, want ErrProviderTruncated", err)
+	}
+
+	provider := &scriptedProvider{responses: []CompletionResponse{assistantResponse("second answer")}}
+	second := &Runner{Provider: provider, Model: "test", MaxSteps: 2, System: "ignored on resume",
+		Messages: session.Messages(), Executor: executor, Session: session}
+	if _, err := second.Run(context.Background(), "second prompt"); err != nil {
+		t.Fatalf("resume failed: %v", err)
+	}
+	messages := provider.requests[0].Messages
+	if problems := chatHistoryProblems(messages); len(problems) != 0 {
+		t.Fatalf("resumed request would be rejected by the provider: %v", problems)
+	}
+	if len(messages) != 3 || messages[0].Role != "system" || messages[1].Content != "first prompt" || messages[2].Content != "second prompt" {
+		t.Fatalf("resumed history changed: %+v", messages)
 	}
 }
