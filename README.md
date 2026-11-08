@@ -1,16 +1,27 @@
 <div align="center">
-  <img src="assets/logo.svg" alt="UNCUT logo" width="112">
-  <h1>UNCUT</h1>
-  <p><strong>The lossless, headless coding agent harness.</strong></p>
-  <p>One 7 MB static binary, four tools, plain stdin/stdout.<br>No TUI. No telemetry. No silent context cuts.</p>
+  <img src="docs/readme/hero.png" alt="UNCUT — the lossless, headless coding agent harness. One static binary, four tools, zero silent context cuts." width="100%">
+  <p><strong>Full context in. Complete results out. Explicit failure when the provider cuts.</strong></p>
   <p>Linux · macOS · Windows · amd64 + arm64 · MIT</p>
-  <p><a href="https://balanov.pro/uncut/">Landing page: balanov.pro/uncut</a></p>
+  <p>
+    <a href="#install">Install</a> ·
+    <a href="#quick-start">Quick start</a> ·
+    <a href="#verify-the-lossless-contract">Lossless proof</a> ·
+    <a href="BENCHMARKS.md">Measurements</a> ·
+    <a href="https://balanov.pro/uncut/">Website</a> ·
+    <a href="README_RU.md">Русский</a>
+  </p>
+  <p>
+    <a href="https://github.com/Balanov/uncut/actions/workflows/ci.yml"><img src="https://github.com/Balanov/uncut/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/Balanov/uncut/releases/latest"><img src="https://img.shields.io/github/v/release/Balanov/uncut" alt="Latest release"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT license"></a>
+    <a href="go.mod"><img src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white" alt="Go 1.26+"></a>
+  </p>
 </div>
 
-[![CI](https://github.com/Balanov/uncut/actions/workflows/ci.yml/badge.svg)](https://github.com/Balanov/uncut/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/Balanov/uncut)](https://github.com/Balanov/uncut/releases/latest)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go&logoColor=white)](go.mod)
+<div align="center">
+  <img src="docs/readme/demo.gif" alt="UNCUT lossless proof: six recorded checks pass, including complete byte transport and explicit rejection of provider truncation" width="100%">
+  <p><sub>Six recorded scenarios against a deterministic local provider. <a href="bench/results/windows-amd64-proof.json">Raw results</a> · <a href="bench/README.md">Run it yourself</a>. Transport checks, not a model-quality benchmark.</sub></p>
+</div>
 
 UNCUT is a tiny coding-agent harness for shell pipelines, CI jobs, containers, and agent experiments. It deliberately has no TUI, telemetry, plugin system, background agents, automatic retries, or context compaction.
 
@@ -24,6 +35,11 @@ The entire conversation is sent on every model call. File contents and combined 
 - **Provider neutral.** Works with OpenAI-compatible Chat Completions endpoints, including local servers.
 - **Resumable.** Optional append-only JSONL sessions preserve every message and tool result.
 - **Forkable.** 837 lines of implementation Go, four tools, one provider protocol, one agent loop, MIT license.
+
+<div align="center">
+  <img src="docs/readme/proof.png" alt="The UNCUT agent loop and recorded proof: 442,400 bytes of file and prompt unchanged, 213,018 bytes of combined output unchanged, and exit 3 with zero partial stdout on provider truncation" width="100%">
+  <p><sub>The lossless contract, with links to reproducible evidence in <a href="BENCHMARKS.md">BENCHMARKS.md</a>.</sub></p>
+</div>
 
 ## Install
 
