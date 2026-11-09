@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/readme/hero.png" alt="UNCUT — lossless coding-agent harness для терминала, CI и экспериментов" width="100%">
+  <img src="docs/readme/hero-v2.png" alt="UNCUT — полный контекст на входе, полный результат на выходе и записанный lossless proof" width="100%">
   <p><strong>Полный контекст на входе. Полный результат на выходе. Явная ошибка вместо скрытого обрезания.</strong></p>
   <p><a href="README.md">English</a> · <a href="#быстрый-старт">Быстрый старт</a> · <a href="#проверка-lossless-контракта">Проверка</a> · <a href="BENCHMARKS.md">Измерения</a> · <a href="https://balanov.pro/uncut/">Сайт</a></p>
 </div>
