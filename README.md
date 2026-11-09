@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/readme/hero-v2.png" alt="UNCUT — full context in, complete results out, with a recorded six-scenario lossless proof" width="100%">
+  <img src="docs/readme/hero.png" alt="UNCUT — the lossless, headless coding agent harness. One static binary, four tools, zero silent context cuts." width="100%">
   <p><strong>Full context in. Complete results out. Explicit failure when the provider cuts.</strong></p>
   <p>Linux · macOS · Windows · amd64 + arm64 · MIT</p>
   <p>
