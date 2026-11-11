@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- On Unix, cancelling a run (Ctrl-C, SIGTERM) while `run_command` is executing now stops every process the shell started, not only `/bin/sh`. Previously a child such as a test runner kept running and kept the output pipe open, so UNCUT blocked until it exited on its own and ignored further signals. Added a regression test.
+
 ## 0.1.1 — 2026-11-01
 
 ### Fixed
