@@ -11,7 +11,7 @@ Measured on 2026-11-01 with:
 - Pi 1.4.0 (`@earendil-works/pi-coding-agent`), installed with npm 11.12.1 and `--ignore-scripts`; Node 24.21.0 was already installed.
 - Python 3.12.16 for the benchmark driver.
 
-After five warmups per CLI, the driver measured 100 `--version` subprocess launches per CLI. Candidates were interleaved with rotating order. Every sample includes Python's subprocess overhead and uses warm OS caches. The final run had no intentional concurrent workload.
+After five warmups per CLI, the driver measured 100 `--version` subprocess launches per CLI. Candidates were interleaved in rotating order. Every sample includes Python's subprocess overhead and uses warm OS caches. The final run had no intentional concurrent workload.
 
 | CLI | Min | Median | p95 | Max | Measured footprint |
 | --- | ---: | ---: | ---: | ---: | ---: |
