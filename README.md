@@ -171,7 +171,7 @@ uncut --session .uncut/work.jsonl "Start the refactor"
 uncut --session .uncut/work.jsonl "Continue with the tests"
 ```
 
-If the file exists, UNCUT resumes its complete history. New messages are appended and synced after each step. Invalid or partial records cause an explicit error; they are never discarded to make a session load.
+If the file exists, UNCUT resumes its complete history. New messages are appended and synced after each step. A model step that UNCUT rejects — provider truncation, a tool call without an id or name, or an empty message — is not written to the session, so a failed run never leaves a session that the next run cannot resume. Invalid or partial records cause an explicit error; they are never discarded to make a session load.
 
 Session files can contain source code, command output, and secrets. Store them accordingly and do not commit them accidentally.
 
