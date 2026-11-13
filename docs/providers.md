@@ -54,6 +54,6 @@ need neither a hosted provider account nor internet access:
 go test -count=1 ./internal/harness -run TestOpenAIProvider
 ```
 
-A successful one-turn manual check establishes only that model and request's
+A successful one-turn manual check establishes only that model's and request's
 compatibility. Tool calls, tool-result continuation, truncation, and errors need
 their own checks before making broader compatibility claims.
