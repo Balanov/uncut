@@ -262,6 +262,15 @@ assets/             logo and editable brand source
 docs/               launch material
 ```
 
+## Related projects
+
+- [shim](https://github.com/Balanov/shim) — a local-first harness for any model, MCP servers and Agent Skills.
+- [skein](https://github.com/Balanov/skein) — fail-closed swarm orchestration with epoch-fenced work.
+- [equal](https://github.com/Balanov/equal) — turns real API traffic into a local sandbox and an OpenAPI spec.
+- [latch](https://github.com/Balanov/latch) — one tiny HTTPS contract between any agent and any service.
+- [mcp-attest](https://github.com/Balanov/mcp-attest) — an authorization conformance harness for MCP servers.
+
+
 ## License
 
 MIT. Fork it, modify it, ship it. See [LICENSE](LICENSE).
