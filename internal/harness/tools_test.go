@@ -135,3 +135,78 @@ func TestReadFileRejectsInvalidUTF8(t *testing.T) {
 		t.Fatal("expected invalid UTF-8 to fail explicitly")
 	}
 }
+
+func TestWriteFileRequiresContent(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "notes.md")
+	if err := os.WriteFile(path, []byte("keep me"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	executor, err := NewExecutor(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, arguments := range []string{`{"path":"notes.md"}`, `{"path":"notes.md","content":null}`, `{"path":"fresh.md"}`} {
+		call := ToolCall{Function: FunctionCall{Name: "write_file", Arguments: arguments}}
+		if _, err := executor.Execute(context.Background(), call); err == nil || err.Error() != "content is required" {
+			t.Fatalf("%s: expected content is required, got %v", arguments, err)
+		}
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(content) != "keep me" {
+		t.Fatalf("refused write_file modified the file: %q", content)
+	}
+	if _, err := os.Stat(filepath.Join(root, "fresh.md")); !os.IsNotExist(err) {
+		t.Fatalf("refused write_file created a file: %v", err)
+	}
+	call := ToolCall{Function: FunctionCall{Name: "write_file", Arguments: `{"path":"notes.md","content":""}`}}
+	if _, err := executor.Execute(context.Background(), call); err != nil {
+		t.Fatal(err)
+	}
+	content, err = os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(content) != 0 {
+		t.Fatalf("explicit empty content was not written: %q", content)
+	}
+}
+
+func TestReplaceRequiresNew(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "file.txt")
+	if err := os.WriteFile(path, []byte("before old after"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	executor, err := NewExecutor(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, arguments := range []string{`{"path":"file.txt","old":"old "}`, `{"path":"file.txt","old":"old ","new":null}`} {
+		call := ToolCall{Function: FunctionCall{Name: "replace", Arguments: arguments}}
+		if _, err := executor.Execute(context.Background(), call); err == nil || err.Error() != "new is required" {
+			t.Fatalf("%s: expected new is required, got %v", arguments, err)
+		}
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(content) != "before old after" {
+		t.Fatalf("refused replace modified the file: %q", content)
+	}
+	call := ToolCall{Function: FunctionCall{Name: "replace", Arguments: `{"path":"file.txt","old":"old ","new":""}`}}
+	if _, err := executor.Execute(context.Background(), call); err != nil {
+		t.Fatal(err)
+	}
+	content, err = os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(content) != "before after" {
+		t.Fatalf("explicit empty new did not delete the match: %q", content)
+	}
+}

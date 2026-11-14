@@ -34,11 +34,11 @@ func NewExecutor(root string) (*Executor, error) {
 
 func (e *Executor) Execute(ctx context.Context, call ToolCall) (string, error) {
 	var args struct {
-		Path    string `json:"path"`
-		Content string `json:"content"`
-		Old     string `json:"old"`
-		New     string `json:"new"`
-		Command string `json:"command"`
+		Path    string  `json:"path"`
+		Content *string `json:"content"`
+		Old     string  `json:"old"`
+		New     *string `json:"new"`
+		Command string  `json:"command"`
 	}
 	if err := json.Unmarshal([]byte(call.Function.Arguments), &args); err != nil {
 		return "", fmt.Errorf("invalid tool arguments: %w", err)
@@ -48,9 +48,15 @@ func (e *Executor) Execute(ctx context.Context, call ToolCall) (string, error) {
 	case "read_file":
 		return e.readFile(args.Path)
 	case "write_file":
-		return e.writeFile(args.Path, args.Content)
+		if args.Content == nil {
+			return "", errors.New("content is required")
+		}
+		return e.writeFile(args.Path, *args.Content)
 	case "replace":
-		return e.replace(args.Path, args.Old, args.New)
+		if args.New == nil {
+			return "", errors.New("new is required")
+		}
+		return e.replace(args.Path, args.Old, *args.New)
 	case "run_command":
 		return e.runCommand(ctx, args.Command)
 	default:
