@@ -19,7 +19,7 @@ import (
 	"github.com/Balanov/uncut/internal/harness"
 )
 
-const version = "0.1.1"
+const version = "0.2.1"
 const defaultSystemPrompt = "You are a coding agent working in a local workspace. Use the available tools to complete the user's request. Inspect before editing. Run relevant checks. Do not claim success without evidence. File tools are scoped to the workspace; shell commands run from its root."
 
 func main() {
