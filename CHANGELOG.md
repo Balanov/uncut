@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- `write_file` without `content` and `replace` without `new` are now refused instead of writing an empty file or deleting the matched text. A missing argument and an explicit `null` are rejected; an explicit empty string still works as before. Added regression tests.
+
 ## 0.2.0 — 2026-11-14
 
 ### Changed
