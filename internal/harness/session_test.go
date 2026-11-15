@@ -69,3 +69,38 @@ func TestSessionRefusesInvalidUTF8(t *testing.T) {
 		t.Fatal("expected invalid UTF-8 to fail instead of replacing bytes")
 	}
 }
+
+func TestOpenSession_missingFinalNewline(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "session.jsonl")
+	original := `{"v":1,"message":{"role":"user","content":"first"}}`
+	if err := os.WriteFile(path, []byte(original), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	session, err := OpenSession(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := session.Append(Message{Role: "assistant", Content: "second"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := session.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	resumed, err := OpenSession(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resumed.Close()
+	messages := resumed.Messages()
+	if len(messages) != 2 || messages[0].Content != "first" || messages[1].Content != "second" {
+		t.Fatalf("unexpected messages after resume: %+v", messages)
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(string(contents), original+"\n") {
+		t.Fatalf("original record changed: %s", contents)
+	}
+}

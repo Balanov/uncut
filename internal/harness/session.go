@@ -20,8 +20,9 @@ type sessionRecord struct {
 
 // Session is an append-only, crash-resumable JSONL message log.
 type Session struct {
-	file     *os.File
-	messages []Message
+	file         *os.File
+	messages     []Message
+	needsNewline bool
 }
 
 func OpenSession(path string) (*Session, error) {
@@ -61,6 +62,7 @@ func OpenSession(path string) (*Session, error) {
 		}
 		if readErr != nil {
 			if errors.Is(readErr, io.EOF) {
+				s.needsNewline = len(line) > 0
 				break
 			}
 			file.Close()
@@ -75,6 +77,9 @@ func (s *Session) Append(message Message) error {
 	if err != nil {
 		return fmt.Errorf("encode session record: %w", err)
 	}
+	if s.needsNewline {
+		record = append([]byte{'\n'}, record...)
+	}
 	record = append(record, '\n')
 	if _, err := s.file.Write(record); err != nil {
 		return fmt.Errorf("append session: %w", err)
@@ -82,6 +87,7 @@ func (s *Session) Append(message Message) error {
 	if err := s.file.Sync(); err != nil {
 		return fmt.Errorf("sync session: %w", err)
 	}
+	s.needsNewline = false
 	s.messages = append(s.messages, message)
 	return nil
 }
