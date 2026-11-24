@@ -207,7 +207,7 @@ Useful flags:
 | `replace` | Replaces exactly one occurrence; zero or multiple matches fail |
 | `run_command` | Returns the exit code and complete combined stdout/stderr |
 
-File paths must stay inside the workspace. `run_command` uses `/bin/sh -c` on Unix and `cmd.exe /D /S /C` on Windows.
+File paths must stay inside the workspace. A path that reaches outside it through a symlink or a Windows junction is refused, not followed. `run_command` uses `/bin/sh -c` on Unix and `cmd.exe /D /S /C` on Windows.
 
 Some Windows utilities can emit UTF-16 or code-page output rather than UTF-8. UNCUT rejects that output instead of guessing a conversion; configure commands to emit UTF-8 when possible.
 

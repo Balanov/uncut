@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- `read_file`, `write_file`, and `replace` resolve symbolic links and Windows junctions before checking that a path stays inside the workspace. A link inside the workspace that pointed outside it previously let a file tool read and write outside the workspace, although the README promises that file paths stay inside it. `filepath.EvalSymlinks` is not enough for the check because it returns a junction unchanged, so link targets are read from the file system; a link that stays inside the workspace still works. Added regression tests for both directions.
+
 ## 0.2.1 - 2026-11-15
 
 
