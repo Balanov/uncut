@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.2.3] — 2026-11-25
+
+### Fixed
+
+- A record appended to a session file that did not end with a newline is now written on its own line. Previously the two records were concatenated and the file stopped being readable as JSONL. The existing bytes are not rewritten.
+
+
 ## 0.2.2 — 2026-11-25
 
 
