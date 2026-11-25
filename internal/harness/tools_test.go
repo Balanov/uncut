@@ -175,6 +175,57 @@ func TestWriteFileRequiresContent(t *testing.T) {
 	}
 }
 
+// dirLink creates a directory link at link that points to target, or skips the
+// test where the platform or the runner does not allow links.
+func dirLink(t *testing.T, target, link string) {
+	t.Helper()
+	if err := os.Symlink(target, link); err != nil {
+		t.Skipf("directory links unavailable: %v", err)
+	}
+}
+
+func TestFileToolsRejectLinkLeavingTheWorkspace(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, "secret.txt"), []byte("outside the workspace"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dirLink(t, outside, filepath.Join(root, "link"))
+	executor, err := NewExecutor(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := executor.readFile("link/secret.txt"); err == nil {
+		t.Fatal("expected a read through a link that leaves the workspace to fail")
+	}
+	if _, err := executor.writeFile("link/created.txt", "written"); err == nil {
+		t.Fatal("expected a write through a link that leaves the workspace to fail")
+	}
+	if _, err := os.Stat(filepath.Join(outside, "created.txt")); !os.IsNotExist(err) {
+		t.Fatalf("refused write_file created a file outside the workspace: %v", err)
+	}
+}
+
+func TestFileToolsFollowLinkInsideTheWorkspace(t *testing.T) {
+	root := t.TempDir()
+	directory := filepath.Join(root, "directory")
+	if err := os.Mkdir(directory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "file.txt"), []byte("inside"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dirLink(t, directory, filepath.Join(root, "alias"))
+	executor, err := NewExecutor(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := executor.readFile("alias/file.txt")
+	if err != nil || got != "inside" {
+		t.Fatalf("read through a link inside the workspace: %q %v", got, err)
+	}
+}
+
 func TestReplaceRequiresNew(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "file.txt")

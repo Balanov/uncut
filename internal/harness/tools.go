@@ -15,6 +15,9 @@ import (
 
 type Executor struct {
 	root string
+	// realRoot is root with the links on the way to it already resolved, so the
+	// containment check compares paths in the same form.
+	realRoot string
 }
 
 func NewExecutor(root string) (*Executor, error) {
@@ -29,7 +32,11 @@ func NewExecutor(root string) (*Executor, error) {
 	if !info.IsDir() {
 		return nil, fmt.Errorf("workspace is not a directory: %s", absolute)
 	}
-	return &Executor{root: absolute}, nil
+	realRoot, err := resolveLinks(absolute)
+	if err != nil {
+		return nil, fmt.Errorf("resolve workspace: %w", err)
+	}
+	return &Executor{root: absolute, realRoot: realRoot}, nil
 }
 
 func (e *Executor) Execute(ctx context.Context, call ToolCall) (string, error) {
@@ -74,11 +81,111 @@ func (e *Executor) resolve(path string) (string, error) {
 	} else {
 		resolved = filepath.Join(e.root, path)
 	}
-	relative, err := filepath.Rel(e.root, resolved)
-	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+	if !within(e.root, resolved) {
 		return "", fmt.Errorf("path escapes workspace: %s", path)
 	}
+	// A link inside the workspace can point outside it, so check the path the
+	// operating system would open, not only its text.
+	target, err := resolveLinks(resolved)
+	if err != nil {
+		return "", fmt.Errorf("resolve %s: %w", path, err)
+	}
+	if !within(e.realRoot, target) {
+		return "", fmt.Errorf("path escapes workspace through a link: %s", path)
+	}
 	return resolved, nil
+}
+
+func within(root, candidate string) bool {
+	relative, err := filepath.Rel(root, candidate)
+	if err != nil {
+		return false
+	}
+	return relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))
+}
+
+// resolveLinks replaces every link that already exists in an absolute path with
+// its target and keeps the components that do not exist yet, so write_file can
+// still create them. filepath.EvalSymlinks is not enough here: it returns a
+// Windows junction unchanged, so a junction inside the workspace would keep
+// pointing outside it. A junction also reports no symlink mode, so the link
+// target is read from the file system instead of the mode.
+func resolveLinks(path string) (string, error) {
+	if !filepath.IsAbs(path) {
+		return "", fmt.Errorf("path is not absolute: %s", path)
+	}
+	resolved := filepath.Clean(path)
+	for depth := 0; depth <= 32; depth++ {
+		expanded, linked, err := expandLink(resolved)
+		if err != nil {
+			return "", err
+		}
+		if !linked {
+			return expanded, nil
+		}
+		resolved = expanded
+	}
+	return "", fmt.Errorf("more than 32 links in %s", path)
+}
+
+// expandLink replaces the first link in path with its target and stops at the
+// first component that does not exist yet.
+func expandLink(path string) (string, bool, error) {
+	current := filepath.VolumeName(path) + string(filepath.Separator)
+	parts := strings.Split(strings.TrimPrefix(path, current), string(filepath.Separator))
+	for index, part := range parts {
+		if part == "" {
+			continue
+		}
+		next := filepath.Join(current, part)
+		info, err := os.Lstat(next)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return joinParts(next, parts[index+1:]), false, nil
+			}
+			return "", false, err
+		}
+		if info.Mode()&os.ModeSymlink != 0 || info.Mode()&os.ModeIrregular != 0 {
+			target, linked, err := linkTarget(next, info)
+			if err != nil {
+				return "", false, err
+			}
+			if linked {
+				if !filepath.IsAbs(target) {
+					target = filepath.Join(current, target)
+				}
+				return joinParts(target, parts[index+1:]), true, nil
+			}
+		}
+		current = next
+	}
+	return current, false, nil
+}
+
+// linkTarget returns the target of a symbolic link or of a Windows junction. A
+// junction reports ModeIrregular instead of ModeSymlink, so its target comes
+// from the file system; an irregular entry without a target is not a link.
+func linkTarget(path string, info os.FileInfo) (string, bool, error) {
+	if info.Mode()&os.ModeSymlink == 0 && info.Mode()&os.ModeIrregular == 0 {
+		return "", false, nil
+	}
+	target, err := os.Readlink(path)
+	if err != nil {
+		if info.Mode()&os.ModeSymlink != 0 {
+			return "", false, err
+		}
+		return "", false, nil
+	}
+	return target, true, nil
+}
+
+func joinParts(base string, parts []string) string {
+	for _, part := range parts {
+		if part != "" {
+			base = filepath.Join(base, part)
+		}
+	}
+	return base
 }
 
 func (e *Executor) readFile(path string) (string, error) {
